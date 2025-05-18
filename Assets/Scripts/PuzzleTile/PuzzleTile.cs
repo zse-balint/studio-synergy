@@ -21,7 +21,15 @@ public class PuzzleTile : MonoBehaviour
     private bool _selected = false;
     private int _x = -1;
     private int _y = -1;
+    //private Vector3 _moveDirection;
+    private Vector3 _destination;
+    private float _speed = 25.0f;
+    private bool _onTheMove = false;
+    private readonly float _stoppingDistance = 0.1f;
     private MainBoard _board;
+
+
+    public bool IsInStack { get; set; } = true;
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -34,15 +42,49 @@ public class PuzzleTile : MonoBehaviour
         }
     }
 
+    public void SetBoard(MainBoard board)
+    {
+        _board = board;
+    }
+
     // Update is called once per frame
     void Update()
     {
+        if (!_onTheMove)
+        {
+            return;
+        }
 
+        float maxDistanceDelta = _speed * Time.deltaTime;
+        transform.position = Vector3.MoveTowards(transform.position, _destination, maxDistanceDelta);
+
+        if (Vector3.Distance(transform.position, _destination) <= _stoppingDistance)
+        {
+            Debug.Log("Reached destination!");
+            enabled = false; // Stop moving
+            // Optionally, snap to the exact destination:
+            transform.position = _destination;
+            _board.TileIsNoLongerMoving(this);
+        }
     }
 
-    public void SetBoard(MainBoard board)
+    public void SetDestination(Vector3 destination)
     {
-        //_board = board;
+        //if (_destination == destination)
+        //{
+        //    return;
+        //}
+
+        _board.RegisterTileAsOnTheMove(this);
+
+        _onTheMove = true;
+        _destination = destination;
+        //_moveDirection = (destination - transform.position).normalized;
+        float distance = Vector3.Distance(transform.position, destination);
+
+        enabled = true;
+        Debug.Log($"tile {this} moving to {destination} from {transform.position}, distance: {distance}");
+        //_speed = (float)Math.Sqrt(Math.Pow(Math.Abs(destination.x - transform.position.x), 2) + Math.Pow(Math.Abs(destination.y - transform.position.y), 2));
     }
 
     public void OnMouseDown()
@@ -104,6 +146,11 @@ public class PuzzleTile : MonoBehaviour
 
     public override string ToString()
     {
+        if (IsInStack)
+        {
+            return "Back";
+        }
+
         string theSpriteName = "";
 
         if (_color is not null)
@@ -239,13 +286,17 @@ public class PuzzleTile : MonoBehaviour
         _y = tile._y;
 
         _board.SetTileOnGameBoard(this, _x, _y);
-        transform.position = new Vector3(tile.transform.position.x, tile.transform.position.y, transform.position.z);
+        SetDestination(new Vector3(tile.transform.position.x, tile.transform.position.y, transform.position.z));
     }
 
     public void DisownTile(PuzzleTile tile)
     {
+        _x = tile._x;
+        _y = tile._y;
         StealNeighboursFrom(tile);
         _board.SetTileOnGameBoard(this, _x, _y);
+        tile._x = -1;
+        tile._y = -1;
     }
 
     public List<PuzzleTile> GetOrthogonalNeighbours()

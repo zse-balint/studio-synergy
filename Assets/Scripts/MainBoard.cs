@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -34,21 +35,47 @@ public class MainBoard : MonoBehaviour
 
     public Button continueButton;
 
+    public Button exitButton;
+
+    public Button soundButton;
+
+    public Button previousButton;
+
+    public Button nextButton;
+
+    public Button popupButton;
+
+    public Button nextLevelButton;
+
+    public GameObject slideShower;
+
+    public Image incomeBubble;
+
     public TextMeshProUGUI coinsTextGUIObject;
+
+    public TextMeshProUGUI pointsTextGUIObject;
+
+    public TextMeshProUGUI nofTileInDeckTextGUIObject;
 
     public TextMeshProUGUI evaluationTextGUIObject;
 
     public TextMeshProUGUI scoringTextGUIObject;
 
+    public TextMeshProUGUI costTitleGUIObject;
+
+    public TextMeshProUGUI incomeCountdownGUIObject;
+
 
     public static float SelectedTileOffsetY => 0.4f;
 
-    public static int DrawPileX = 12;
+    public static float DrawPileX = 24f;
 
-    public static int DrawPileY = 10;
+    public static float DrawPileY = 9.4f;
 
 
-    public static MainBoard TheMainBoard { get; private set; }
+    public static MainBoard TheMainBoard { get; private set; } = null;
+
+    public static int NofTurnsPerIncomePhase => 4;
 
 
     public int NofCoins
@@ -61,34 +88,53 @@ public class MainBoard : MonoBehaviour
         }
     }
 
+    public int NofPoints
+    {
+        get => _points;
+        set
+        {
+            _points = value;
+            pointsTextGUIObject.text = value == 0 ? string.Empty : $"{_points}";
+        }
+    }
+
 
     private AudioSource _audioSource;
     private readonly List<PuzzleTile> _emptyBoardTiles = new();
     private readonly PuzzleTile[,] _gameTilesOnTheBoard = new PuzzleTile[6, 6];
     private TileMarket _tileMarket;
     private readonly List<PuzzleTile> _filledSpaces = new();
+    private readonly HashSet<PuzzleTile> _tilesOnTheMove = new();
     private GameState _lastGameState = GameState.WAITING;
-    private GameState _currentGameState = GameState.STARTING;
-    private GameState _nextGameState = GameState.MOVING;
+    private GameState _currentGameState = GameState.END;
+    private GameState _nextGameState = GameState.BEFOREGAME;
     private int _coins;
+    private int _points = 0;
     private readonly List<Command> _undoRedoQueueu = new();
     private int _currentUndoRedoQueuePosition = 0;
-    private Client _currentClient;
     private readonly List<GameObject> _otherObjects = new();
     private readonly List<ScoringButtonScript> _scoringButtons = new();
     private readonly List<Game> _games = new();
     private readonly List<Client> _scoringClients = new();
     private readonly List<Client> _incomeClients = new();
+    private readonly List<Type> _knownPatternMatchings = new();
+    private readonly List<Sprite> _slides = new();
     private int _currentGame = 0;
+    private int _currentSlide = 0;
     private bool _boardWasInitialized = false;
+    private bool _soundIsOn = true;
+    private int _turnsToNextIncome = NofTurnsPerIncomePhase;
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        TheMainBoard = this;
+        if (TheMainBoard == null)
+        {
+            TheMainBoard = this;
+        }
 
-		Camera[] allCameras = Camera.allCameras;
+        Camera[] allCameras = Camera.allCameras;
         Debug.Log("Number of cameras in scene: " + allCameras.Length);
         foreach (Camera cam in allCameras)
         {
@@ -100,12 +146,32 @@ public class MainBoard : MonoBehaviour
             Debug.Log("Camera Name: " + cam.gameObject.name + ", Enabled: " + cam.enabled);
         }
 
+        exitButton.onClick.AddListener(QuitApplication);
+        soundButton.onClick.AddListener(ToggleSound);
+        previousButton.onClick.AddListener(GoToPreviousSlide);
+        previousButton.gameObject.SetActive(false);
+        nextButton.onClick.AddListener(GoToNextSlide);
+        nextButton.gameObject.SetActive(false);
+        popupButton.onClick.AddListener(ClosePopup);
+        popupButton.gameObject.SetActive(false);
+        nextLevelButton.onClick.AddListener(ButtonWasClicked);
+        nextLevelButton.gameObject.SetActive(false);
+        continueButton.gameObject.SetActive(false);
+        redoButton.gameObject.SetActive(false);
+        undoButton.gameObject.SetActive(false);
+        slideShower.SetActive(false);
+        incomeBubble.gameObject.SetActive(false);
+        costTitleGUIObject.gameObject.SetActive(false);
+        incomeCountdownGUIObject.gameObject.SetActive(false);
+
         _audioSource = GetComponent<AudioSource>();
         undoButton.interactable = false;
         redoButton.interactable = false;
         NofCoins = -1;
         evaluationTextGUIObject.text = "";
         scoringTextGUIObject.text = "";
+        pointsTextGUIObject.text = "";
+        nofTileInDeckTextGUIObject.text = "";
         _currentUndoRedoQueuePosition = 0;
         _undoRedoQueueu.Clear();
 
@@ -120,29 +186,30 @@ public class MainBoard : MonoBehaviour
             new BalancePatternMatching(PatternMatching.PatternMatchingAspect.COLOR, scoreSound)
         };
 
-        secondGame.initialNofCoins = 50;
-        secondGame.marketTilePrices = new int[] { 2, 5, 9, 14 };
+        secondGame.initialNofCoins = 20;
+        secondGame.marketTilePrices = new int[] { 1, 2, 3, 5 };
         secondGame.incomePatterns = new PatternMatching[] {
-            new ContinuityPatternMatching(PatternMatching.PatternMatchingAspect.FIGURE, income1Sound),
-            new ProximityPatternMatching(PatternMatching.PatternMatchingAspect.COLOR, income2Sound)
+            new ProximityPatternMatching(PatternMatching.PatternMatchingAspect.FIGURE, income2Sound)
         };
         secondGame.scoringPatterns = new PatternMatching[] {
-            new LeftRightEqualPatternMatching(PatternMatching.PatternMatchingAspect.COLOR, scoreSound)
+            new BalancePatternMatching(PatternMatching.PatternMatchingAspect.COLOR, scoreSound)
         };
 
-        thirdGame.initialNofCoins = 40;
-        thirdGame.marketTilePrices = new int[] { 5, 9, 14, 20, 27, 35 };
+        thirdGame.initialNofCoins = 20;
+        thirdGame.marketTilePrices = new int[] { 2, 4, 6, 10 };
         thirdGame.incomePatterns = new PatternMatching[] {
-            new LeftRightEqualPatternMatching(PatternMatching.PatternMatchingAspect.COLOR, income1Sound)
+            new ContinuityPatternMatching(PatternMatching.PatternMatchingAspect.COLOR, income1Sound),
+            new ProximityPatternMatching(PatternMatching.PatternMatchingAspect.FIGURE, income2Sound)
         };
         thirdGame.scoringPatterns = new PatternMatching[] {
-            new BalancePatternMatching(PatternMatching.PatternMatchingAspect.FIGURE, scoreSound),
-            new ProximityPatternMatching(PatternMatching.PatternMatchingAspect.COLOR, scoreSound)
+            new BalancePatternMatching(PatternMatching.PatternMatchingAspect.COLOR, scoreSound)
         };
 
         _games.Add(firstGame);
         _games.Add(secondGame);
         _games.Add(thirdGame);
+
+        MoveToNextGameState();
     }
 
     public void SetTileOnGameBoard(PuzzleTile tile, int x, int y)
@@ -158,15 +225,40 @@ public class MainBoard : MonoBehaviour
 
     public void ScoringButtonWasClicked(ScoringButtonScript sender)
     {
-        _currentClient = sender.Client;
-        _nextGameState = GameState.INCOME;
+        //if (sender.Client.ClientType == ClientType.SCORING)
+        //{
+        //    _nextGameState = GameState.SCORING;
+        //    MoveToNextGameState();
+        //}
+        //else
+        //{
+            popupButton.GetComponent<Image>().sprite = Resources.Load<Sprite>(sender.Client.PopupName);
+            popupButton.gameObject.SetActive(true);
+        //}
+        //_currentClient = sender.Client;
+        //_nextGameState = GameState.INCOME;
 
-        MoveToNextGameState();
+        //MoveToNextGameState();
+    }
+
+    public void ClosePopup()
+    {
+        popupButton.gameObject.SetActive(false);
     }
 
     public void ButtonWasClicked()
     {
+        Debug.Log($"CLICKED at gamestate {_currentGameState}");
         PlaySound(nextButtonSound);
+
+        if (_currentGameState == GameState.BEFOREGAME)
+        {
+            _currentGameState = GameState.STARTING;
+            continueButton.gameObject.SetActive(false);
+            previousButton.gameObject.SetActive(false);
+            slideShower.transform.localScale = Vector3.one;
+            slideShower.SetActive(false);
+        }
 
         if (_currentGameState == GameState.STARTING)
         {
@@ -180,9 +272,8 @@ public class MainBoard : MonoBehaviour
                 {
                     InitializeBoard(_games[_currentGame++]);
 
+                    _currentGameState = GameState.MOVING;
                     _nextGameState = GameState.SELECTINGTILE;
-
-                    StartCoroutine(MoveToNextGameStateAfterSeconds(1));
                 }
             }
         }
@@ -190,14 +281,15 @@ public class MainBoard : MonoBehaviour
         {
             TearDown();
 
-            _nextGameState = GameState.STARTING;
+            _nextGameState = GameState.BEFOREGAME;
 
             MoveToNextGameState();
         }
-        else
+        else if (_currentGameState == GameState.SCORING)
         {
-            _nextGameState = GameState.SCORING;
+            _nextGameState = GameState.BEFOREGAME;
 
+            nextLevelButton.gameObject.SetActive(false);
             MoveToNextGameState();
         }
         //else
@@ -226,14 +318,20 @@ public class MainBoard : MonoBehaviour
     {
         _currentGameState = gameState;
 
-        MoveToNextGameState();
+        if (_tilesOnTheMove.Count == 0)
+        {
+            MoveToNextGameState();
+        }
     }
 
-    public void SetNextGameState(GameState gameState)
+    public void SetNextGameState(GameState gameState, bool moveToNextState = false)
     {
         _nextGameState = gameState;
 
-        MoveToNextGameState();
+        if (moveToNextState)
+        {
+            MoveToNextGameState();
+        }
     }
 
     public void TileWasClicked(PuzzleTile tile)
@@ -281,7 +379,7 @@ public class MainBoard : MonoBehaviour
                 break;
         }
 
-        MoveToNextGameState();
+        //MoveToNextGameState();
     }
 
     public GameState GetGameState()
@@ -291,7 +389,11 @@ public class MainBoard : MonoBehaviour
 
     public void MoveToNextGameState()
     {
-        if (_nextGameState != GameState.WAITING)
+        if (_nextGameState == GameState.WAITING || _nextGameState == GameState.MOVING)
+        {
+            StartCoroutine(MoveToNextGameStateAfterSeconds(1));
+        }
+        else
         {
             _lastGameState = _currentGameState;
             _currentGameState = _nextGameState;
@@ -311,15 +413,22 @@ public class MainBoard : MonoBehaviour
                     break;
 
                 case GameState.INCOME:
-                    Debug.Log("SCORING INCOME.");
-                    MakeBoardUnselectable();
-                    Command scoreIncomeCommand = CreateScoreIncomeCommand();
-                    PerformCommand(scoreIncomeCommand);
+                    if (_incomeClients.Count == 0)
+                    {
+                        SetNextGameState(GameState.SELECTINGTILE, moveToNextState: true);
+                    }
+                    else
+                    {
+                        Debug.Log("SCORING INCOME.");
+                        MakeBoardUnselectable();
+                        Command scoreIncomeCommand = CreateScoreIncomeCommand();
+                        PerformCommand(scoreIncomeCommand);
+                    }
 
                     break;
 
                 case GameState.SCORING:
-                    DisplayEvaluationsForClients(_scoringClients, GameState.END, scoringTextGUIObject);
+                    DisplayEvaluationsForClients(_scoringClients, GameState.BEFOREGAME, scoringTextGUIObject, scoring: true);
 
                     break;
 
@@ -333,6 +442,13 @@ public class MainBoard : MonoBehaviour
                     }
 
                     continueButton.interactable = true;
+
+                    break;
+
+                case GameState.BEFOREGAME:
+                    Debug.Log("between games");
+                    TearDown();
+                    GoToNextGame();
 
                     break;
 
@@ -399,7 +515,37 @@ public class MainBoard : MonoBehaviour
         }
     }
 
-    public void AddNewTMPText(float x, float y, float width, float height, string message, int fontSize, bool convertFromWorldPosition = true)
+    public void RegisterTileAsOnTheMove(PuzzleTile tile)
+    {
+        _tilesOnTheMove.Add(tile);
+    }
+
+    public void TileIsNoLongerMoving(PuzzleTile tile)
+    {
+        if (!_tilesOnTheMove.Contains(tile))
+        {
+            throw new System.Exception("ATTEMPTED TO UNREGISTER TILE WHICH IS NOT KNOWN TO BE MOVING");
+        }
+
+        _tilesOnTheMove.Remove(tile);
+
+        if (_tilesOnTheMove.Count == 0)
+        {
+            // MOVE TO NEXT GAME STATE
+            if (_currentGameState == GameState.MOVING)
+            {
+                Debug.Log($"   ==== FINAL TILE ARRIVED, MOVING TO {_nextGameState} ====");
+
+                MoveToNextGameState();
+            }
+            else
+            {
+                throw new System.Exception("THE LAST TILE DEREGISTERED, BUT GAME STATE WAS NOT 'MOVING'");
+            }
+        }
+    }
+
+    public TextMeshProUGUI AddNewTMPText(float x, float y, float width, float height, string message, int fontSize, bool convertFromWorldPosition = true, TMPro.TMP_FontAsset font = null)
     {
         Vector3 worldPosition = new(x, y, 1);
         Vector3 screenPosition = Camera.main.WorldToScreenPoint(worldPosition);
@@ -424,57 +570,149 @@ public class MainBoard : MonoBehaviour
 
         TextMeshProUGUI tmp = textGO.AddComponent<TextMeshProUGUI>();
         tmp.text = message;
+
+        if (font != null)
+        {
+            tmp.font = font;
+        }
+
         tmp.fontSize = fontSize;
         tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color = Color.white;
+        tmp.verticalAlignment = VerticalAlignmentOptions.Bottom;
+        tmp.color = Color.black;
+
+        return tmp;
     }
+
+    //public void ClearUndoRedoQueue()
+    //{
+    //    undoButton.interactable = false;
+    //    redoButton.interactable = false;
+    //    _currentUndoRedoQueuePosition = 0;
+
+    //    _undoRedoQueueu.Clear();
+    //}
 
     public void Undo()
     {
         PlaySound(undoRedoButtonSound);
 
-        _currentUndoRedoQueuePosition--;
-        _undoRedoQueueu[_currentUndoRedoQueuePosition].Undo();
-        redoButton.interactable = true;
+        Command command = _undoRedoQueueu[_currentUndoRedoQueuePosition - 1];
+        int nofUndoSteps = 1;
 
-        if (_currentUndoRedoQueuePosition == 0)
+        if (command is SelectPositionForTileCommand)
         {
-            undoButton.interactable = false;
+            nofUndoSteps = 2;
         }
+
+        if (command is ScoreIncomeCommand)
+        {
+            nofUndoSteps = 3;
+        }
+
+        Debug.Log($"undoing {nofUndoSteps} steps");
+        for (int i = 0; i < nofUndoSteps; i++)
+        {
+            _currentUndoRedoQueuePosition--;
+            _undoRedoQueueu[_currentUndoRedoQueuePosition].Undo();
+        }
+
+        redoButton.interactable = _currentUndoRedoQueuePosition < _undoRedoQueueu.Count;
+        undoButton.interactable = _currentUndoRedoQueuePosition > 0;
     }
 
     public void Redo()
     {
         PlaySound(undoRedoButtonSound);
 
-        _undoRedoQueueu[_currentUndoRedoQueuePosition].Do();
-        undoButton.interactable = true;
+        Command command = _undoRedoQueueu[_currentUndoRedoQueuePosition];
+        Debug.Log("redoing " + command.CommandName + " command");
+        //undoButton.interactable = true;
 
         _currentUndoRedoQueuePosition++;
 
-        if (_currentUndoRedoQueuePosition >= _undoRedoQueueu.Count)
+        redoButton.interactable = _currentUndoRedoQueuePosition < _undoRedoQueueu.Count;
+        undoButton.interactable = _currentUndoRedoQueuePosition > 0;
+        //if (_currentUndoRedoQueuePosition >= _undoRedoQueueu.Count)
+        //{
+        //    redoButton.interactable = false;
+        //}
+
+        command.Do();
+    }
+
+    public void ToggleSound()
+    {
+        _soundIsOn = !_soundIsOn;
+
+        Image buttonImage = soundButton.GetComponent<Image>();
+        string nextButtonImageName = $"Buttons/{(_soundIsOn ? "" : "un")}mutesound";
+        Debug.Log($"loading sprite '{nextButtonImageName}'");
+        Sprite buttonSprite = Resources.Load<Sprite>(nextButtonImageName);
+
+        buttonImage.sprite = buttonSprite;
+    }
+
+    public void QuitApplication()
+    {
+#if UNITY_EDITOR
+        // If the game is running in the Unity Editor, stop play mode
+        UnityEditor.EditorApplication.isPlaying = false;
+        Debug.Log("Exiting Play Mode in Editor");
+#else
+        // If the game is a standalone build, quit the application
+        Application.Quit();
+        Debug.Log("Quitting Application");
+#endif
+    }
+
+    public void DisplayEvaluationsForClients(List<Client> clients, GameState nextGameState, TextMeshProUGUI textMeshProUGUI, bool scoring = false)
+    {
+        StartCoroutine(ClientEvaluationDisplayer(clients, nextGameState, textMeshProUGUI, scoring: scoring));
+    }
+
+    public bool IncomeCounterAdvanced()
+    {
+        bool timeForIncome = false;
+
+        _turnsToNextIncome--;
+
+        if (_turnsToNextIncome == 0)
         {
-            redoButton.interactable = false;
+            _turnsToNextIncome = NofTurnsPerIncomePhase;
+
+            timeForIncome = true;
         }
+
+        incomeCountdownGUIObject.text = $"Income in {_turnsToNextIncome} turn{(_turnsToNextIncome > 1 ? "s" : "")}";
+
+        return timeForIncome;
     }
 
-    public void DisplayEvaluationsForClients(List<Client> clients, GameState nextGameState, TextMeshProUGUI textMeshProUGUI)
+    public void IncomeCounterRetreated()
     {
-        StartCoroutine(ClientEvaluationDisplayer(clients, nextGameState, textMeshProUGUI));
+        _turnsToNextIncome++;
+
+        if (_turnsToNextIncome > NofTurnsPerIncomePhase)
+        {
+            _turnsToNextIncome = 1;
+        }
+
+        incomeCountdownGUIObject.text = $"Income in {_turnsToNextIncome} turns";
     }
 
 
-    private IEnumerator ClientEvaluationDisplayer(List<Client> clients, GameState nextGameState, TextMeshProUGUI textMeshProUGUI)
+    private IEnumerator ClientEvaluationDisplayer(List<Client> clients, GameState nextGameState, TextMeshProUGUI textMeshProUGUI, bool scoring = false)
     {
-        bool first = true;
+        bool hadNoEvaluations = true;
 
         foreach (Client client in clients)
         {
             foreach (Evaluation evaluation in client.CalculateEvaluations())
             {
-                if (first)
+                if (hadNoEvaluations)
                 {
-                    first = false;
+                    hadNoEvaluations = false;
                 }
                 else
                 {
@@ -483,13 +721,36 @@ public class MainBoard : MonoBehaviour
 
                 PlaySound(evaluation.Sound);
                 evaluation.StartDisplayingEvaluation(textMeshProUGUI);
-                NofCoins += evaluation.Value;
+                if (scoring)
+                {
+                    NofPoints += evaluation.Value;
+                }
+                else
+                {
+                    NofCoins += evaluation.Value;
+                }
                 yield return new WaitForSeconds(2);
                 evaluation.StopDisplayingEvaluation(textMeshProUGUI);
             }
         }
 
-        SetNextGameState(nextGameState);
+        if (hadNoEvaluations && clients.Count > 0)
+        {
+            textMeshProUGUI.text = $"You did not score any {(scoring ? "points" : "income")}";
+
+            yield return new WaitForSeconds(2);
+
+            textMeshProUGUI.text = string.Empty;
+        }
+
+        if (nextGameState == GameState.BEFOREGAME)
+        {
+            nextLevelButton.gameObject.SetActive(true);
+        }
+        else
+        {
+            SetNextGameState(nextGameState, moveToNextState: true);
+        }
     }
 
     private IEnumerator MoveToNextGameStateAfterSeconds(int seconds)
@@ -500,7 +761,7 @@ public class MainBoard : MonoBehaviour
 
     private Command CreateScoreIncomeCommand()
     {
-        return new ScoreIncomeCommand(_lastGameState, _currentGameState, _nextGameState, _gameTilesOnTheBoard, _incomeClients, _coins);
+        return new ScoreIncomeCommand(_lastGameState, _currentGameState, _nextGameState, _incomeClients, _coins);
     }
 
     private Command CreateSelectTileFromMarketCommand(PuzzleTile tile)
@@ -522,11 +783,11 @@ public class MainBoard : MonoBehaviour
             _undoRedoQueueu.RemoveRange(_currentUndoRedoQueuePosition, _undoRedoQueueu.Count - _currentUndoRedoQueuePosition);
         }
 
-        command.Do();
         _undoRedoQueueu.Add(command);
         redoButton.interactable = false;
         undoButton.interactable = true;
         _currentUndoRedoQueuePosition++;
+        command.Do();
     }
 
     private void TearDown()
@@ -585,52 +846,167 @@ public class MainBoard : MonoBehaviour
         _otherObjects.Clear();
         _incomeClients.Clear();
         _scoringClients.Clear();
-        _tileMarket.TearDown();
 
-        _tileMarket = null;
-        _currentClient = null;
+        redoButton.gameObject.SetActive(false);
+        undoButton.gameObject.SetActive(false);
+        incomeBubble.gameObject.SetActive(false);
+        costTitleGUIObject.gameObject.SetActive(false);
+        incomeCountdownGUIObject.gameObject.SetActive(false);
+
+        if (_tileMarket != null)
+        {
+            _tileMarket.TearDown();
+            _tileMarket = null;
+        }
+
         _currentUndoRedoQueuePosition = 0;
-        _currentGameState = GameState.STARTING;
         _boardWasInitialized = false;
+        NofPoints = 0;
+        NofCoins = -1;
+    }
+
+    private void GoToNextGame()
+    {
+        if (_currentGame >= _games.Count)
+        {
+            _currentGame--;
+        }
+
+        Game game = _games[_currentGame];
+
+        _slides.Clear();
+        _slides.Add(Resources.Load<Sprite>($"Slides/game-{_currentGame}-intro-slide"));
+
+        foreach (PatternMatching patternMatching in game.incomePatterns)
+        {
+            Type patternMatchingType = patternMatching.GetType();
+
+            if (!_knownPatternMatchings.Contains(patternMatchingType))
+            {
+                _knownPatternMatchings.Add(patternMatchingType);
+
+                string clientName = patternMatchingType.Name[..^15];
+
+                for (int i = 1; i <= 4; i++)
+                {
+                    _slides.Add(Resources.Load<Sprite>($"Clients/{clientName}/{clientName.ToLower()}-introduction-income-{i}"));
+                }
+            }
+        }
+
+        foreach (PatternMatching patternMatching in game.scoringPatterns)
+        {
+            Type patternMatchingType = patternMatching.GetType();
+
+            if (!_knownPatternMatchings.Contains(patternMatchingType))
+            {
+                _knownPatternMatchings.Add(patternMatching.GetType());
+
+                string clientName = patternMatchingType.Name[..^15];
+
+                for (int i = 1; i <= 4; i++)
+                {
+                    _slides.Add(Resources.Load<Sprite>($"Clients/{clientName}/{clientName.ToLower()}-introduction-scoring-{i}"));
+                }
+            }
+        }
+
+        slideShower.SetActive(true);
+
+        SpriteRenderer painter = slideShower.GetComponent<SpriteRenderer>();
+        DisplayFullScreenCentered centerer = slideShower.GetComponent<DisplayFullScreenCentered>();
+
+        _currentSlide = 0;
+        painter.sprite = _slides[_currentSlide];
+
+        centerer.PositionSpriteFullScreenCentered();
+        nextButton.gameObject.SetActive(_currentSlide + 1 < _slides.Count - 1);
+        continueButton.gameObject.SetActive(_currentSlide + 1 == _slides.Count - 1);
+        _nextGameState = GameState.STARTING;
+    }
+
+    private void GoToPreviousSlide()
+    {
+        PlaySound(nextButtonSound);
+        continueButton.gameObject.SetActive(false);
+
+        if (_currentSlide > 0)
+        {
+            _currentSlide--;
+
+            SpriteRenderer painter = slideShower.GetComponent<SpriteRenderer>();
+
+            painter.sprite = _slides[_currentSlide];
+
+            nextButton.gameObject.SetActive(true);
+            previousButton.gameObject.SetActive(_currentSlide > 0);
+        }
+    }
+
+    private void GoToNextSlide()
+    {
+        PlaySound(nextButtonSound);
+
+        if (_currentSlide < _slides.Count - 1)
+        {
+            _currentSlide++;
+
+            SpriteRenderer painter = slideShower.GetComponent<SpriteRenderer>();
+
+            painter.sprite = _slides[_currentSlide];
+
+            nextButton.gameObject.SetActive(_currentSlide < _slides.Count - 1);
+            continueButton.gameObject.SetActive(_currentSlide == _slides.Count - 1);
+            previousButton.gameObject.SetActive(true);
+        }
+    }
+
+    private void AddClientButton(PatternMatching patternMatching, Client client, float x, float y)
+    {
+        GameObject scoringButton = Instantiate(scoringButtonObject, buttonParent);
+        Image buttonImage = scoringButton.GetComponent<Image>();
+        RectTransform buttonRectTransform = scoringButton.GetComponent<RectTransform>();
+        ScoringButtonScript scoringButtonScript = scoringButton.GetComponent<ScoringButtonScript>();
+        Button buttonComponent = scoringButton.GetComponent<Button>();
+
+        buttonImage.sprite = Resources.Load<Sprite>(client.InfoCardName);
+        buttonRectTransform.anchoredPosition = new Vector2(x, y);
+        scoringButtonScript.Client = client;
+        buttonComponent.onClick.AddListener(() => ScoringButtonWasClicked(scoringButtonScript));
+        //_scoringButtons.Add(scoringButtonScript);
+        _otherObjects.Add(scoringButton);
     }
 
     private void InitializeBoard(Game game)
     {
-        float scoringButtonX = 0f;
-        float scoringButtonYOffset = -45f;
+        float incomeButtonX = 150f;
+        float incomeButtonYOffset = -277f;
         PatternMatching[] incomePatterns = game.incomePatterns;
 
         for (int button = 0; button < incomePatterns.Length; button++)
         {
             PatternMatching patternMatching = incomePatterns[button];
-            Client client = new Client(_gameTilesOnTheBoard, patternMatching);
+            Client client = new Client(_gameTilesOnTheBoard, patternMatching, ClientType.INCOME);
 
-            GameObject scoringButton = Instantiate(scoringButtonObject, buttonParent);
-            TextMeshProUGUI buttonText = scoringButton.GetComponentInChildren<TextMeshProUGUI>();
-            RectTransform buttonRectTransform = scoringButton.GetComponent<RectTransform>();
-            ScoringButtonScript scoringButtonScript = scoringButton.GetComponent<ScoringButtonScript>();
-            Button buttonComponent = scoringButton.GetComponent<Button>();
-
-            buttonText.text = patternMatching.ToString();
-            buttonRectTransform.anchoredPosition = new Vector2(scoringButtonX, button * scoringButtonYOffset);
-            scoringButtonScript.Client = client;
-            buttonComponent.onClick.AddListener(() => ScoringButtonWasClicked(scoringButtonScript));
-            _scoringButtons.Add(scoringButtonScript);
+            AddClientButton(patternMatching, client, incomeButtonX, button * incomeButtonYOffset);
             _incomeClients.Add(client);
         }
 
-        float incomeButtonX = 200f;
-        float incomeButtonYOffset = -20f;
+        float scoringButtonX = -40f;
+        float scoringButtonYOffset = -45f;
         PatternMatching[] scoringPatterns = game.scoringPatterns;
 
         for (int scoring = 0; scoring < scoringPatterns.Length; scoring++)
         {
             PatternMatching patternMatching = scoringPatterns[scoring];
-            Client client = new Client(_gameTilesOnTheBoard, patternMatching);
+            Client client = new Client(_gameTilesOnTheBoard, patternMatching, ClientType.SCORING);
 
-            AddNewTMPText(incomeButtonX, 165 + scoring * incomeButtonYOffset, 250, 20, $"Scoring: {patternMatching}", 16, false);
+            AddClientButton(patternMatching, client, scoringButtonX, scoring * scoringButtonYOffset);
             _scoringClients.Add(client);
         }
+
+        float boardTilesXOffset = 9.5f;
+        float boardTilesYOffset = -1.2f;
 
         for (int y = 0; y < 6; y++)
         {
@@ -638,9 +1014,10 @@ public class MainBoard : MonoBehaviour
             {
                 PuzzleTile emptyPuzzleTile = Instantiate(tileSpriteObject).GetComponent<PuzzleTile>();
 
-                emptyPuzzleTile.transform.position = new Vector3(2 * x, 2 * y, y * 6 + x + 37);
+                emptyPuzzleTile.transform.position = new Vector3(2 * x + boardTilesXOffset, 2 * y + boardTilesYOffset, y * 6 + x + 37);
                 _gameTilesOnTheBoard[x, y] = emptyPuzzleTile;
 
+                emptyPuzzleTile.IsInStack = false;
                 emptyPuzzleTile.SetX(x);
                 emptyPuzzleTile.SetY(y);
                 _emptyBoardTiles.Add(emptyPuzzleTile);
@@ -693,16 +1070,26 @@ public class MainBoard : MonoBehaviour
             }
         }
 
+        incomeBubble.gameObject.SetActive(game.initialNofCoins > -1);
+        costTitleGUIObject.gameObject.SetActive(game.initialNofCoins > -1);
+        incomeCountdownGUIObject.gameObject.SetActive(game.initialNofCoins > -1);
+        redoButton.gameObject.SetActive(true);
+        undoButton.gameObject.SetActive(true);
+
+        incomeCountdownGUIObject.text = "Income in 4 turns";
         NofCoins = game.initialNofCoins;
         _tileMarket = new(game.marketTilePrices);
         _boardWasInitialized = true;
-
+        _turnsToNextIncome = NofTurnsPerIncomePhase;
     }
 
     private void PlaySound(AudioClip clip)
     {
-        _audioSource.clip = clip;
-        _audioSource.Play();
+        if (_soundIsOn)
+        {
+            _audioSource.clip = clip;
+            _audioSource.Play();
+        }
     }
 
 

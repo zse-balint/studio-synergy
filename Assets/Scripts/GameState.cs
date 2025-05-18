@@ -1,5 +1,6 @@
 public enum GameState
 {
+    BEFOREGAME,
     END,
     INCOME,
     MOVING,

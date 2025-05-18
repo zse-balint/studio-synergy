@@ -52,6 +52,7 @@ public class TileMarket
                 PuzzleTile puzzleTile = tile.GetComponent<PuzzleTile>();
                 puzzleTile.SetColor(new TileColor(color));
                 puzzleTile.SetFigure(new TileFigure(figure));
+                puzzleTile.SetBoard(_mainBoard);
                 tile.transform.position = new Vector3(MainBoard.DrawPileX, MainBoard.DrawPileY, 9 * i + j + 37);
                 tilesForDeck.Add(puzzleTile);
             }
@@ -61,24 +62,28 @@ public class TileMarket
 
         for (int i = 0; i < 36; i++)
         {
-            tilesForDeck[i].transform.position = new Vector3(tilesForDeck[i].transform.position.x, tilesForDeck[i].transform.position.y, 36 - i);
+            tilesForDeck[i].transform.position = new Vector3(tilesForDeck[i].transform.position.x + i * 0.01f, tilesForDeck[i].transform.position.y + i * 0.01f, 36 - i);
         }
 
         _deck = new(tilesForDeck);
-
+        float marketTilesXOffset = 9.5f;
+        float marketTilesYOffset = 0.2f;
         for (int i = 0; i < _marketPrices.Length; i++)
         {
             int price = _marketPrices[i];
-            MarketPosition marketPosition = new(new Vector3(2 * i, 13, 1), price);
+            float marketXposition = 2 * i + marketTilesXOffset;
+            MarketPosition marketPosition = new(new Vector3(marketXposition, 13 + marketTilesYOffset, 1), price);
 
             if (price > 0)
             {
-                _mainBoard.AddNewTMPText(2 * i, 14.2f, 100, 50, price.ToString(), 16);
+                _mainBoard.AddNewTMPText(marketXposition, 14.2f + marketTilesYOffset, 100, 50, price.ToString(), 30, font: Resources.Load<TMPro.TMP_FontAsset>("Manjari-Bold SDF"));
             }
 
             marketPosition.Tile = _deck.Pop();
             _positions.Add(marketPosition);
         }
+
+        _mainBoard.nofTileInDeckTextGUIObject.text = $"Tiles in deck\n{_deck.Count}";
     }
 
     public void MakeSelectable()
@@ -151,7 +156,6 @@ public class TileMarket
         selectedTile.Unselect();
         selectedTile.MakeUnselectable();
         selectedTile.InheritTile(emptyTileAtNewPosition);
-        Debug.Log("cluster size: " + selectedTile.FindClusterSize(new List<PuzzleTile>()));
 
         for (int i = selectedIndex; i < _positions.Count - 1; i++)
         {
@@ -162,6 +166,7 @@ public class TileMarket
         {
             PuzzleTile newTile = _deck.Pop();
             _positions[^1].Tile = newTile;
+            _mainBoard.nofTileInDeckTextGUIObject.text = _deck.Count == 0 ? "" : $"Tiles in deck\n{_deck.Count}";
         }
         else
         {
@@ -178,7 +183,10 @@ public class TileMarket
         {
             topTile.MakeUnselectable();
             _deck.Push(topTile);
-            topTile.transform.position = new Vector3(MainBoard.DrawPileX, MainBoard.DrawPileY, topTile.transform.position.z);
+            topTile.SetDestination(new Vector3(MainBoard.DrawPileX + _deck.Count * 0.01f, MainBoard.DrawPileY + _deck.Count * 0.01f, topTile.transform.position.z));
+            topTile.IsInStack = true;
+            topTile.LoadProperSprite();
+            _mainBoard.nofTileInDeckTextGUIObject.text = $"Tiles in deck\n{_deck.Count}";
         }
 
         for (int i = _positions.Count - 1; i > 0; i--)
@@ -197,7 +205,7 @@ public class TileMarket
             targetPosition.Tile = tileToReturn;
         }
 
-        tileToReturn.transform.position = new Vector3(tileToReturn.transform.position.x, tileToReturn.transform.position.y, tileToReturn.transform.position.z);
+        tileToReturn.SetDestination(new Vector3(tileToReturn.transform.position.x, tileToReturn.transform.position.y, tileToReturn.transform.position.z));
     }
 
     public void TearDown()

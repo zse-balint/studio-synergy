@@ -3,6 +3,25 @@ using UnityEngine;
 
 public class ContinuityPatternMatching : PatternMatching
 {
+    private Dictionary<int, int> scoringTable = new() {
+        { 3, 2 },
+        { 4, 4 },
+        { 5, 6 },
+        { 6, 9 },
+        { 7, 12 },
+        { 8, 16 },
+        { 9, 16 },
+        { 10, 16 },
+        { 11, 16 },
+        { 12, 16 },
+        { 13, 16 },
+        { 14, 16 },
+        { 15, 16 },
+        { 16, 16 },
+        { 17, 16 },
+        { 18, 16 }
+    };
+
     public ContinuityPatternMatching(PatternMatchingAspect aspect, AudioClip sound) :
         base(aspect, sound)
     {
@@ -33,6 +52,7 @@ public class ContinuityPatternMatching : PatternMatching
 
         List<PuzzleTile> visitedTiles = new();
         List<PuzzleTile> tilesInThisCluster = new();
+        PuzzleTile tail = null;
         int nofSingleNeighbourTiles = 0;
         bool foundMoreThanTwoNighbours = false;
         Evaluation evaluation = null;
@@ -45,7 +65,7 @@ public class ContinuityPatternMatching : PatternMatching
 
                 if (!tile.IsEmpty() && !visitedTiles.Contains(tile))
                 {
-                    FollowTheThread(tile, tilesInThisCluster, ref nofSingleNeighbourTiles, ref foundMoreThanTwoNighbours);
+                    FollowTheThread(tile, tilesInThisCluster, ref nofSingleNeighbourTiles, ref foundMoreThanTwoNighbours, ref tail);
 
                     if (tilesInThisCluster.Count >= 3 &&
                         nofSingleNeighbourTiles == 2 &&
@@ -94,7 +114,7 @@ public class ContinuityPatternMatching : PatternMatching
         return evaluations;
     }
 
-    private void FollowTheThread(PuzzleTile tile, List<PuzzleTile> tilesInThisCluster, ref int nofSingleNeighbourTiles, ref bool foundMoreThanTwoNighbours)
+    private void FollowTheThread(PuzzleTile tile, List<PuzzleTile> tilesInThisCluster, ref int nofSingleNeighbourTiles, ref bool foundMoreThanTwoNighbours, ref PuzzleTile tail)
     {
         tilesInThisCluster.Add(tile);
 
@@ -115,6 +135,7 @@ public class ContinuityPatternMatching : PatternMatching
         else if (orthogonalNeighbours.Count == 1)
         {
             nofSingleNeighbourTiles++;
+            tail = tile;
         }
         else if (orthogonalNeighbours.Count > 2)
         {
@@ -125,7 +146,7 @@ public class ContinuityPatternMatching : PatternMatching
         {
             if (!tilesInThisCluster.Contains(neighbour))
             {
-                FollowTheThread(neighbour, tilesInThisCluster, ref nofSingleNeighbourTiles, ref foundMoreThanTwoNighbours);
+                FollowTheThread(neighbour, tilesInThisCluster, ref nofSingleNeighbourTiles, ref foundMoreThanTwoNighbours, ref tail);
             }
         }
     }

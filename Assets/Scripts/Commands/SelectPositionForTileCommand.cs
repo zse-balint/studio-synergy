@@ -35,17 +35,22 @@ public class SelectPositionForTileCommand : Command
 
     public override void Do()
     {
+        MainBoard.MakeBoardUnselectable();
         _tileMarket.MoveTheSelectedTileToSamePlaceAs(_emptyTile);
         _filledSpaces.Add(_emptyTile);
+        MainBoard.SetCurrentGameState(GameState.MOVING);
 
         if (_filledSpaces.Count == 36)
         {
             Debug.Log("board is filled");
+            MainBoard.incomeCountdownGUIObject.text = "";
             MainBoard.SetNextGameState(GameState.SCORING);
         }
         else
         {
-            if (_filledSpaces.Count % 4 == 0)
+            bool timeForIncome = MainBoard.IncomeCounterAdvanced();
+
+            if (timeForIncome)
             {
                 MainBoard.SetNextGameState(GameState.INCOME);
             }
@@ -61,6 +66,7 @@ public class SelectPositionForTileCommand : Command
         _tileMarket.ReturnTile(_selectedMarketTile, _emptyTile, _marketPosition);
         _tileMarket.TileBecameSelected(_selectedMarketTile, withdrawFunds: false);
         _filledSpaces.Remove(_emptyTile);
-        MainBoard.SetNextGameState(GameState.SELECTINGPOSITION);
+        MainBoard.SetCurrentGameState(GameState.MOVING);
+        MainBoard.IncomeCounterRetreated();
     }
 }

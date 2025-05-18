@@ -89,7 +89,7 @@ public class Evaluation
             tile.DisplayEvaluationFor(_aspect);
         }
 
-        scoreText.text = _value.ToString();
+        scoreText.text = $"+{_value.ToString()}";
     }
 
     public void StopDisplayingEvaluation(TextMeshProUGUI scoreText)

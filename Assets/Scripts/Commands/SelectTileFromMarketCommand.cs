@@ -25,12 +25,15 @@ public class SelectTileFromMarketCommand : Command
     public override void Do()
     {
         _tileMarket.TileBecameSelected(_tile);
+        MainBoard.SetCurrentGameState(GameState.MOVING);
         MainBoard.SetNextGameState(GameState.SELECTINGPOSITION);
     }
 
     public override void Undo()
     {
         _tileMarket.UnselectTheSelectedTile();
-        MainBoard.SetNextGameState(CurrentGameState);
+        MainBoard.SetCurrentGameState(GameState.MOVING);
+        //MainBoard.SetNextGameState(CurrentGameState);
+        MainBoard.SetNextGameState(GameState.SELECTINGTILE);
     }
 }

@@ -4,9 +4,32 @@ using UnityEngine;
 
 public class ProximityPatternMatching : PatternMatching
 {
+    private Dictionary<int, int> scoringTable = new () {
+        { 2, 2 },
+        { 3, 2 },
+        { 4, 3 },
+        { 5, 3 },
+        { 6, 5 },
+        { 7, 5 },
+        { 8, 8 },
+        { 9, 8 },
+        { 10, 10 },
+        { 11, 10 },
+        { 12, 13 },
+        { 13, 13 },
+        { 14, 13 },
+        { 15, 13 },
+        { 16, 21 },
+        { 17, 21 },
+        { 18, 21 },
+    };
+
+    private readonly List<Evaluation> _evaluations;
+
     public ProximityPatternMatching(PatternMatchingAspect aspect, AudioClip sound) :
         base(aspect, sound)
     {
+        _evaluations = new();
     }
 
 
@@ -17,7 +40,21 @@ public class ProximityPatternMatching : PatternMatching
 
     public override List<Evaluation> FindMatches(PuzzleTile[,] gameTiles)
     {
-        List<Evaluation> evaluations = new();
+		if (_evaluations.Count > 0)
+		{
+			bool obsolete = false;
+
+			foreach (PuzzleTile tile in _evaluations[0].GetCopyOfTiles())
+			{
+				obsolete |= tile.GetX() == -1;
+			}
+
+			if (obsolete)
+			{
+				_evaluations.Clear();
+			}
+		}
+
         int[,] matrix1 = new int[6, 6];
         int[,] matrix2 = new int[6, 6];
 
@@ -105,11 +142,11 @@ public class ProximityPatternMatching : PatternMatching
             largest = rectangleViewer1.GetArea() > rectangleViewer2.GetArea() ? rectangleViewer1 : rectangleViewer2;
         }
 
-        if (largest != null && largest.GetArea() >= 2)
+        if (largest != null && largest.GetArea() >= 2 && (_evaluations.Count == 0 || largest.GetArea() != _evaluations[0].GetNofTiles()))
         {
             Evaluation evaluation = new(WhatWeCareAbout, Sound);
 
-            evaluation.Value = largest.GetArea();
+            evaluation.Value = scoringTable[largest.GetArea()];
 
             for (int y = largest.Y; y < largest.Y + largest.Height; y++)
             {
@@ -119,34 +156,11 @@ public class ProximityPatternMatching : PatternMatching
                 }
             }
 
-            evaluations.Add(evaluation);
+            _evaluations.Clear();
+            _evaluations.Add(evaluation);
         }
 
-        //List<RectangleViewer> rectangles = GetRectangleViewers(matrix1);
-
-        //rectangles.AddRange(GetRectangleViewers(matrix2));
-
-        //foreach (RectangleViewer rectangle in rectangles)
-        //{
-        //    if (rectangle.GetArea() >= 2)
-        //    {
-        //        Evaluation evaluation = new(WhatWeCareAbout);
-
-        //        evaluation.Value = rectangle.GetArea();
-
-        //        for (int y = rectangle.Y; y < rectangle.Y + rectangle.Height; y++)
-        //        {
-        //            for (int x = rectangle.X; x < rectangle.X + rectangle.Width; x++)
-        //            {
-        //                evaluation.AddPuzzleTile(gameTiles[x, y]);
-        //            }
-        //        }
-
-        //        evaluations.Add(evaluation);
-        //    }
-        //}
-
-        return evaluations;
+        return _evaluations;
     }
 
     private List<RectangleViewer> GetRectangleViewers(int[,] matrix)
