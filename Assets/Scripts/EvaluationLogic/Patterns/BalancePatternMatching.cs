@@ -368,35 +368,5 @@ public class BalancePatternMatching : PatternMatching
         }
 
         return evaluations;
-
-        // THIS IS ROTATIONS AND FLIPS, EXACT EQUAL
-
-        //PuzzleTile[,] rotatedTiles = FlipHorizontal(gameTiles);
-
-        //for (int y = 0; y < 6; y++)
-        //{
-        //    for (int x = 0; x < 6; x++)
-        //    {
-        //        PuzzleTile thisTile = gameTiles[x, y];
-        //        PuzzleTile thatTile = rotatedTiles[x, y];
-
-        //        if (thisTile.IsSimilarTo(thatTile).WithRespectTo(WhatWeCareAbout))
-        //        {
-        //            Evaluation evaluation = new(WhatWeCareAbout);
-
-        //            evaluation.Value = 5;
-
-        //            evaluation.AddPuzzleTile(thisTile);
-        //            evaluation.AddPuzzleTile(thatTile);
-
-        //            if (!evaluations.Contains(evaluation))
-        //            {
-        //                evaluations.Add(evaluation);
-        //            }
-        //        }
-        //    }
-        //}
-
-        //return evaluations;
     }
 }

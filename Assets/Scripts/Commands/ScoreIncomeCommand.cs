@@ -8,15 +8,9 @@ public class ScoreIncomeCommand : Command
 
 
     public ScoreIncomeCommand(
-			GameState lastGameState,
-			GameState currentGameState,
-			GameState nextGameState,
             List<Client> clients,
 			int coinsBeforeIncome) :
-        base(
-			lastGameState,
-			currentGameState,
-			nextGameState)
+        base()
     {
         _clients = clients;
         _coinsBeforeIncome = coinsBeforeIncome;
@@ -25,7 +19,7 @@ public class ScoreIncomeCommand : Command
 
     public override void Do()
     {
-        MainBoard.DisplayEvaluationsForClients(_clients, GameState.SELECTINGTILE, MainBoard.TheMainBoard.evaluationTextGUIObject);
+        MainBoard.DisplayEvaluationsForClients(_clients, GameState.SELECTINGTILE, MainBoard.evaluationTextGUIObject);
     }
 
     public override void Undo()

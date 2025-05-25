@@ -35,21 +35,6 @@ public class ContinuityPatternMatching : PatternMatching
     public override List<Evaluation> FindMatches(PuzzleTile[,] gameTiles)
     {
         List<Evaluation> evaluations = new();
-
-        // recursive lookup through a cluster
-        // save each visited tile in a list
-        // look at every tile, but skip the ones which were already visited
-        // going through the cluster, keep track of how many times a tile has
-        //   only 1 single neighbour of the desired type
-        // after the lookup, check if the cluster meets the following criteria
-        //  * size >= 3
-        //  * 1 single neighbour found twice
-        //  * more than 2 neighbours was never found
-        //  * the cluster spans over more than 1 row
-        //  * the cluster spans over more than 1 column
-        // yes to all those questions means we have a snake!
-        // compare the snakes, only the largest counts
-
         List<PuzzleTile> visitedTiles = new();
         List<PuzzleTile> tilesInThisCluster = new();
         PuzzleTile tail = null;

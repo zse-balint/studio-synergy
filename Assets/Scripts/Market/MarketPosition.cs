@@ -37,8 +37,6 @@ public class MarketPosition
         if (_tile != null && !_tile.IsSelected() && (!withdrawFunds || _mainBoard.NofCoins >= _price || _price < 1))
         {
             _tile.Select();
-
-            //_tile.transform.position = new Vector3(_tile.transform.position.x, _tile.transform.position.y - MainBoard.SelectedTileOffsetY, _tile.transform.position.z);
             _tile.SetDestination(new Vector3(_position.x, _position.y - MainBoard.SelectedTileOffsetY, _tile.transform.position.z));
 
             if (withdrawFunds && _price > 0)
@@ -54,8 +52,6 @@ public class MarketPosition
         {
             _tile.Unselect();
             _tile.RemoveHighlight();
-
-            //_tile.transform.position = new Vector3(_tile.transform.position.x, _tile.transform.position.y + MainBoard.SelectedTileOffsetY, _tile.transform.position.z);
             _tile.SetDestination(new Vector3(_position.x, _position.y, _tile.transform.position.z));
 
             if (_price > 0)

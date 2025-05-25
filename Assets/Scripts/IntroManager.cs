@@ -6,14 +6,14 @@ using UnityEngine.UI;
 
 public class IntroManager : MonoBehaviour
 {
-    public Image slideDisplay;
+    public GameObject introSlideShower;
     public Button startButton;
     public Button backButton;
     public Button forwardButton;
     public Button exitButton;
 
-    private List<Sprite> slides = new();
-    private int currentSlideIndex = 0;
+    private List<Sprite> _slides = new();
+    private int _currentSlideIndex = 0;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -23,7 +23,7 @@ public class IntroManager : MonoBehaviour
         if (loadedSprites != null && loadedSprites.Length > 0)
         {
             // Sort the sprites alphabetically by their name
-            slides = loadedSprites.OrderBy(s => s.name).ToList();
+            _slides = loadedSprites.OrderBy(s => s.name).ToList();
         }
         else
         {
@@ -40,7 +40,7 @@ public class IntroManager : MonoBehaviour
         forwardButton.onClick.AddListener(ShowNextSlide);
         exitButton.onClick.AddListener(QuitApplication);
 
-        UpdateSlideDisplay();
+        UpdateSlideDisplay(true);
     }
 
     // Update is called once per frame
@@ -55,18 +55,18 @@ public class IntroManager : MonoBehaviour
 
     public void ShowPreviousSlide()
     {
-        if (currentSlideIndex > 0)
+        if (_currentSlideIndex > 0)
         {
-            currentSlideIndex--;
+            _currentSlideIndex--;
             UpdateSlideDisplay();
         }
     }
 
     public void ShowNextSlide()
     {
-        if (currentSlideIndex < slides.Count - 1)
+        if (_currentSlideIndex < _slides.Count - 1)
         {
-            currentSlideIndex++;
+            _currentSlideIndex++;
             UpdateSlideDisplay();
         }
     }
@@ -84,16 +84,27 @@ public class IntroManager : MonoBehaviour
 #endif
     }
 
-    private void UpdateSlideDisplay()
+    private void UpdateSlideDisplay(bool firstCall = false)
     {
-        if (slides != null && slides.Count > 0 && slideDisplay != null)
+        SpriteRenderer painter = introSlideShower.GetComponent<SpriteRenderer>();
+
+        if (_slides != null && _slides.Count > 0 && introSlideShower != null)
         {
-            slideDisplay.sprite = slides[currentSlideIndex];
+            painter.sprite = _slides[_currentSlideIndex];
+
+            if (firstCall)
+            {
+                DisplayFullScreenCentered centerer = introSlideShower.GetComponent<DisplayFullScreenCentered>();
+
+                introSlideShower.transform.localScale = Vector3.one;
+
+                centerer.PositionSpriteFullScreenCentered();
+            }
         }
 
         // Update button interactability
-        backButton.gameObject.SetActive(currentSlideIndex > 0);
-        forwardButton.gameObject.SetActive(currentSlideIndex < slides.Count - 1);
-        startButton.gameObject.SetActive(currentSlideIndex == slides.Count - 1);
+        backButton.gameObject.SetActive(_currentSlideIndex > 0);
+        forwardButton.gameObject.SetActive(_currentSlideIndex < _slides.Count - 1);
+        startButton.gameObject.SetActive(_currentSlideIndex == _slides.Count - 1 || _slides.Count == 0);
     }
 }

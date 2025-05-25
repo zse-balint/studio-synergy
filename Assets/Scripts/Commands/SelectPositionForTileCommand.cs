@@ -12,17 +12,11 @@ public class SelectPositionForTileCommand : Command
 
 
     public SelectPositionForTileCommand(
-            GameState lastGameState,
-            GameState currentGameState,
-            GameState nextGameState,
             PuzzleTile emptyTile,
             List<PuzzleTile> emptyBoardTiles,
             TileMarket tileMarket,
             List<PuzzleTile> filledSpaces) :
-        base(
-                lastGameState,
-                currentGameState,
-                nextGameState)
+        base()
     {
         _emptyTile = emptyTile;
         _emptyBoardTiles = emptyBoardTiles;

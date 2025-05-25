@@ -25,13 +25,6 @@ public abstract class PatternMatching
     public abstract List<Evaluation> FindMatches(PuzzleTile[,] gameTiles);
 
 
-    /// <summary>
-    /// Rotates the puzzle grid clockwise by the specified number of 90-degree turns.
-    /// <para>Authored by Claude.</para>
-    /// </summary>
-    /// <param name="original">The game board to rotate.</param>
-    /// <param name="rotations">(Optional) The number of 90 degree clockwise turns to rotate by. (Default: 1)</param>
-    /// <returns>A new array, with references to the same PuzzleTile objects as in <paramref name="original"/>.</returns>
     protected PuzzleTile[,] Rotate(PuzzleTile[,] original, int rotations = 1)
     {
         // Normalize rotations to 0-3 range (a complete rotation brings us back to the start)
@@ -70,12 +63,6 @@ public abstract class PatternMatching
         return result;
     }
 
-    /// <summary>
-    /// Flips the puzzle grid horizontally (around vertical axis).
-    /// <para>Authored by Claude.</para>
-    /// </summary>
-    /// <param name="original">The game board to flip.</param>
-    /// <returns>A new array, with references to the same PuzzleTile objects as in <paramref name="original"/>.</returns>
     protected PuzzleTile[,] FlipHorizontal(PuzzleTile[,] original)
     {
         int rows = original.GetLength(0);
@@ -93,12 +80,6 @@ public abstract class PatternMatching
         return result;
     }
 
-    /// <summary>
-    /// Flips the puzzle grid vertically (around horizontal axis).
-    /// <para>Authored by Claude.</para>
-    /// </summary>
-    /// <param name="original">The game board to flip.</param>
-    /// <returns>A new array, with references to the same PuzzleTile objects as in <paramref name="original"/>.</returns>
     protected PuzzleTile[,] FlipVertical(PuzzleTile[,] original)
     {
         int rows = original.GetLength(0);
@@ -116,13 +97,6 @@ public abstract class PatternMatching
         return result;
     }
 
-    /// <summary>
-    /// Transposes the puzzle grid (swaps rows and columns).
-    /// <para>This is a diagonal flip. See also <see cref="TransposeAntiDiagonal(PuzzleTile[,])"/>.</para>
-    /// <para>Authored by Claude.</para>
-    /// </summary>
-    /// <param name="original">The game board to transpose (flip).</param>
-    /// <returns>A new array, with references to the same PuzzleTile objects as in <paramref name="original"/>.</returns>
     protected PuzzleTile[,] Transpose(PuzzleTile[,] original)
     {
         int rows = original.GetLength(0);
@@ -140,13 +114,6 @@ public abstract class PatternMatching
         return result;
     }
 
-    /// <summary>
-    /// Transposes the puzzle grid along the anti-diagonal.
-    /// <para>This is a diagonal flip over the other diagonal compared to <see cref="Transpose(PuzzleTile[,])"/>.</para>
-    /// <para>Authored by Claude.</para>
-    /// </summary>
-    /// <param name="original">The game board to transpose (flip).</param>
-    /// <returns>A new array, with references to the same PuzzleTile objects as in <paramref name="original"/>.</returns>
     protected PuzzleTile[,] TransposeAntiDiagonal(PuzzleTile[,] original)
     {
         int rows = original.GetLength(0);
@@ -164,13 +131,6 @@ public abstract class PatternMatching
         return result;
     }
 
-    /// <summary>
-    /// Shifts rows circularly (positive shifts upward, negative shifts downward).
-    /// <para>Authored by Claude.</para>
-    /// </summary>
-    /// <param name="original">The game board to shift.</param>
-    /// <param name="shiftAmount">Number of shifts (positive shifts upward, negative shifts downward).</param>
-    /// <returns>A new array, with references to the same PuzzleTile objects as in <paramref name="original"/>.</returns>
     protected PuzzleTile[,] ShiftRows(PuzzleTile[,] original, int shiftAmount)
     {
         int rows = original.GetLength(0);
@@ -196,13 +156,6 @@ public abstract class PatternMatching
         return result;
     }
 
-    /// <summary>
-    /// Shifts columns circularly (positive shifts to right, negative shifts to left).
-    /// <para>Authored by Claude.</para>
-    /// </summary>
-    /// <param name="original">The game board to shift.</param>
-    /// <param name="shiftAmount">Number of shifts (positive shifts to right, negative shifts to left).</param>
-    /// <returns>A new array, with references to the same PuzzleTile objects as in <paramref name="original"/>.</returns>
     protected PuzzleTile[,] ShiftColumns(PuzzleTile[,] original, int shiftAmount)
     {
         int rows = original.GetLength(0);
@@ -227,17 +180,6 @@ public abstract class PatternMatching
         return result;
     }
 
-    /// <summary>
-    /// Extracts a sub-grid from the original grid.
-    /// <para>Authored by Claude.</para>
-    /// </summary>
-    /// <param name="original">The game board to extract a sub-grid from.</param>
-    /// <param name="startRow">The first row of the sub-grid to be extracted.</param>
-    /// <param name="startCol">The first column of the sub-grid to be extracted.</param>
-    /// <param name="height">The hight of the sub-grid to be extracted.</param>
-    /// <param name="width">The width of the sub-grid to be extracted.</param>
-    /// <returns>A sub-grid from the original grid</returns>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
     protected PuzzleTile[,] GetSubGrid(PuzzleTile[,] original, int startRow, int startCol, int height, int width)
     {
         int rows = original.GetLength(0);
@@ -412,8 +354,6 @@ public abstract class PatternMatching
         return result;
     }
 
-    // Creates a deep copy of the array structure but with the same PuzzleTile references
-    // Authored by Claude
     private PuzzleTile[,] Clone(PuzzleTile[,] original)
     {
         int rows = original.GetLength(0);

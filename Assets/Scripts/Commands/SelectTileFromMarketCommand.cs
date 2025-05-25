@@ -7,15 +7,9 @@ public class SelectTileFromMarketCommand : Command
 
 
     public SelectTileFromMarketCommand(
-            GameState lastGameState,
-            GameState currentGameState,
-            GameState nextGameState,
             PuzzleTile tile,
             TileMarket tileMarket) :
-        base(
-                lastGameState,
-                currentGameState,
-                nextGameState)
+        base()
     {
         _tile = tile;
         _tileMarket = tileMarket;
@@ -33,7 +27,6 @@ public class SelectTileFromMarketCommand : Command
     {
         _tileMarket.UnselectTheSelectedTile();
         MainBoard.SetCurrentGameState(GameState.MOVING);
-        //MainBoard.SetNextGameState(CurrentGameState);
         MainBoard.SetNextGameState(GameState.SELECTINGTILE);
     }
 }

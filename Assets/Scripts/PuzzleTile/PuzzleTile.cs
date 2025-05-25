@@ -21,7 +21,6 @@ public class PuzzleTile : MonoBehaviour
     private bool _selected = false;
     private int _x = -1;
     private int _y = -1;
-    //private Vector3 _moveDirection;
     private Vector3 _destination;
     private float _speed = 25.0f;
     private bool _onTheMove = false;
@@ -70,21 +69,14 @@ public class PuzzleTile : MonoBehaviour
 
     public void SetDestination(Vector3 destination)
     {
-        //if (_destination == destination)
-        //{
-        //    return;
-        //}
-
         _board.RegisterTileAsOnTheMove(this);
 
         _onTheMove = true;
         _destination = destination;
-        //_moveDirection = (destination - transform.position).normalized;
         float distance = Vector3.Distance(transform.position, destination);
 
         enabled = true;
         Debug.Log($"tile {this} moving to {destination} from {transform.position}, distance: {distance}");
-        //_speed = (float)Math.Sqrt(Math.Pow(Math.Abs(destination.x - transform.position.x), 2) + Math.Pow(Math.Abs(destination.y - transform.position.y), 2));
     }
 
     public void OnMouseDown()

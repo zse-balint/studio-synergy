@@ -183,8 +183,6 @@ public class ProximityPatternMatching : PatternMatching
             }
         }
 
-        RectangleViewer largestRectangleViewer = new(0, 0, 0, 0, matrix);
-
         foreach (RectangleViewer viewer in viewers)
         {
             viewer.ExpandWidth();
@@ -192,26 +190,6 @@ public class ProximityPatternMatching : PatternMatching
 
         viewers.Sort();
         viewers.Reverse();
-
-        int nofViewers = viewers.Count;
-
-        for (int i = 0; i < nofViewers - 1; i++)
-        {
-            RectangleViewer outerViewer = viewers[i];
-
-            for (int j = 0; j < nofViewers; j++)
-            {
-                RectangleViewer innerViewer = viewers[j];
-
-                if (innerViewer != outerViewer && innerViewer.IsInside(outerViewer))
-                {
-                    viewers.Remove(innerViewer);
-
-                    nofViewers--;
-                    j--;
-                }
-            }
-        }
 
         return viewers;
     }
@@ -316,34 +294,6 @@ public class ProximityPatternMatching : PatternMatching
                                                         this.Y >= other.Y &&
                                                         (this.X + this.Width) <= (other.X + other.Width) &&
                                                         (this.Y + this.Height) <= (other.Y + other.Height);
-
-        public bool IntersectsWith(RectangleViewer other)
-        {
-            bool thisIsTooFarToTheLeft = this.X + this.Width < other.X;
-            bool thisIsTooFarToTheRight = this.X > other.X + other.Width;
-            bool thisIsTooLow = this.Y + this.Height < other.Y;
-            bool thisIsTooHigh = this.Y > other.Y + other.Height;
-
-            return !(thisIsTooFarToTheLeft || thisIsTooFarToTheRight || thisIsTooLow || thisIsTooHigh);
-        }
-
-        /// <summary>
-        /// Disect this smaller viewer by a larger viewer. This throws if other is
-        /// </summary>
-        /// <param name="other">The larger viewer.</param>
-        /// <returns>The leftovers.</returns>
-        /// <exception cref="Exception"></exception>
-        public List<RectangleViewer> DisectedBy(RectangleViewer other)
-        {
-            List<RectangleViewer> viewers = new();
-
-            if (GetArea() > other.GetArea())
-            {
-                throw new Exception("other must be larger");
-            }
-
-            return viewers;
-        }
 
         public int CompareTo(RectangleViewer other)
         {

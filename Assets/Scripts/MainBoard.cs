@@ -112,8 +112,8 @@ public class MainBoard : MonoBehaviour
     private int _points = 0;
     private readonly List<Command> _undoRedoQueueu = new();
     private int _currentUndoRedoQueuePosition = 0;
-    private readonly List<GameObject> _otherObjects = new();
     private readonly List<ScoringButtonScript> _scoringButtons = new();
+    private readonly List<GameObject> _otherObjects = new();
     private readonly List<Game> _games = new();
     private readonly List<Client> _scoringClients = new();
     private readonly List<Client> _incomeClients = new();
@@ -132,18 +132,6 @@ public class MainBoard : MonoBehaviour
         if (TheMainBoard == null)
         {
             TheMainBoard = this;
-        }
-
-        Camera[] allCameras = Camera.allCameras;
-        Debug.Log("Number of cameras in scene: " + allCameras.Length);
-        foreach (Camera cam in allCameras)
-        {
-            if (cam.gameObject.name == "Main Camera")
-            {
-                //cam.enabled = false;
-            }
-
-            Debug.Log("Camera Name: " + cam.gameObject.name + ", Enabled: " + cam.enabled);
         }
 
         exitButton.onClick.AddListener(QuitApplication);
@@ -208,6 +196,7 @@ public class MainBoard : MonoBehaviour
         _games.Add(firstGame);
         _games.Add(secondGame);
         _games.Add(thirdGame);
+        _games.Add(thirdGame);
 
         MoveToNextGameState();
     }
@@ -221,24 +210,6 @@ public class MainBoard : MonoBehaviour
     void Update()
     {
         
-    }
-
-    public void ScoringButtonWasClicked(ScoringButtonScript sender)
-    {
-        //if (sender.Client.ClientType == ClientType.SCORING)
-        //{
-        //    _nextGameState = GameState.SCORING;
-        //    MoveToNextGameState();
-        //}
-        //else
-        //{
-            popupButton.GetComponent<Image>().sprite = Resources.Load<Sprite>(sender.Client.PopupName);
-            popupButton.gameObject.SetActive(true);
-        //}
-        //_currentClient = sender.Client;
-        //_nextGameState = GameState.INCOME;
-
-        //MoveToNextGameState();
     }
 
     public void ClosePopup()
@@ -292,19 +263,12 @@ public class MainBoard : MonoBehaviour
             nextLevelButton.gameObject.SetActive(false);
             MoveToNextGameState();
         }
-        //else
-        //{
-        //_nextGameState = GameState.INCOME;
-        //MoveToNextGameState();
-        //}
-        //else if (_currentGameState == GameState.INCOME)
-        //{
-        //    Command scoreIncome = CreateScoreIncomeCommand();
+    }
 
-        //    PerformCommand(scoreIncome);
-        //}
-
-        //MoveToNextGameState();
+    public void ScoringButtonWasClicked(ScoringButtonScript sender)
+    {
+        popupButton.GetComponent<Image>().sprite = Resources.Load<Sprite>(sender.Client.PopupName);
+        popupButton.gameObject.SetActive(true);
     }
 
     public void SetLastGameState(GameState gameState)
@@ -378,8 +342,6 @@ public class MainBoard : MonoBehaviour
                 Debug.Log("UNKNOWN GAME STATE");
                 break;
         }
-
-        //MoveToNextGameState();
     }
 
     public GameState GetGameState()
@@ -584,15 +546,6 @@ public class MainBoard : MonoBehaviour
         return tmp;
     }
 
-    //public void ClearUndoRedoQueue()
-    //{
-    //    undoButton.interactable = false;
-    //    redoButton.interactable = false;
-    //    _currentUndoRedoQueuePosition = 0;
-
-    //    _undoRedoQueueu.Clear();
-    //}
-
     public void Undo()
     {
         PlaySound(undoRedoButtonSound);
@@ -627,16 +580,11 @@ public class MainBoard : MonoBehaviour
 
         Command command = _undoRedoQueueu[_currentUndoRedoQueuePosition];
         Debug.Log("redoing " + command.CommandName + " command");
-        //undoButton.interactable = true;
 
         _currentUndoRedoQueuePosition++;
 
         redoButton.interactable = _currentUndoRedoQueuePosition < _undoRedoQueueu.Count;
         undoButton.interactable = _currentUndoRedoQueuePosition > 0;
-        //if (_currentUndoRedoQueuePosition >= _undoRedoQueueu.Count)
-        //{
-        //    redoButton.interactable = false;
-        //}
 
         command.Do();
     }
@@ -684,7 +632,7 @@ public class MainBoard : MonoBehaviour
             timeForIncome = true;
         }
 
-        incomeCountdownGUIObject.text = $"Income in {_turnsToNextIncome} turn{(_turnsToNextIncome > 1 ? "s" : "")}";
+        SetIncomeTurnsRemainingText($"Income in {_turnsToNextIncome} turn{(_turnsToNextIncome > 1 ? "s" : "")}");
 
         return timeForIncome;
     }
@@ -698,9 +646,20 @@ public class MainBoard : MonoBehaviour
             _turnsToNextIncome = 1;
         }
 
-        incomeCountdownGUIObject.text = $"Income in {_turnsToNextIncome} turns";
+        SetIncomeTurnsRemainingText($"Income in {_turnsToNextIncome} turns");
     }
 
+    private void SetIncomeTurnsRemainingText(string incomeText)
+    {
+        if (_filledSpaces.Count < 32)
+        {
+            incomeCountdownGUIObject.text = incomeText;
+        }
+        else
+        {
+            incomeCountdownGUIObject.text = string.Empty;
+        }
+    }
 
     private IEnumerator ClientEvaluationDisplayer(List<Client> clients, GameState nextGameState, TextMeshProUGUI textMeshProUGUI, bool scoring = false)
     {
@@ -761,17 +720,17 @@ public class MainBoard : MonoBehaviour
 
     private Command CreateScoreIncomeCommand()
     {
-        return new ScoreIncomeCommand(_lastGameState, _currentGameState, _nextGameState, _incomeClients, _coins);
+        return new ScoreIncomeCommand(_incomeClients, _coins);
     }
 
     private Command CreateSelectTileFromMarketCommand(PuzzleTile tile)
     {
-        return new SelectTileFromMarketCommand(_lastGameState, _currentGameState, _nextGameState, tile, _tileMarket);
+        return new SelectTileFromMarketCommand(tile, _tileMarket);
     }
 
     private Command CreateSelectPositionForTileCommand(PuzzleTile tile)
     {
-        return new SelectPositionForTileCommand(_lastGameState, _currentGameState, _nextGameState, tile, _emptyBoardTiles, _tileMarket, _filledSpaces);
+        return new SelectPositionForTileCommand(tile, _emptyBoardTiles, _tileMarket, _filledSpaces);
     }
 
     private void PerformCommand(Command command)
@@ -973,14 +932,14 @@ public class MainBoard : MonoBehaviour
         buttonRectTransform.anchoredPosition = new Vector2(x, y);
         scoringButtonScript.Client = client;
         buttonComponent.onClick.AddListener(() => ScoringButtonWasClicked(scoringButtonScript));
-        //_scoringButtons.Add(scoringButtonScript);
-        _otherObjects.Add(scoringButton);
+        _scoringButtons.Add(scoringButtonScript);
     }
 
     private void InitializeBoard(Game game)
     {
-        float incomeButtonX = 150f;
-        float incomeButtonYOffset = -277f;
+        float incomeButtonX = -40f;
+        float incomeButtonXOffset = 190f;
+        float incomeButtonY = -277f;
         PatternMatching[] incomePatterns = game.incomePatterns;
 
         for (int button = 0; button < incomePatterns.Length; button++)
@@ -988,7 +947,7 @@ public class MainBoard : MonoBehaviour
             PatternMatching patternMatching = incomePatterns[button];
             Client client = new Client(_gameTilesOnTheBoard, patternMatching, ClientType.INCOME);
 
-            AddClientButton(patternMatching, client, incomeButtonX, button * incomeButtonYOffset);
+            AddClientButton(patternMatching, client, incomeButtonX + button * incomeButtonXOffset, incomeButtonY);
             _incomeClients.Add(client);
         }
 
